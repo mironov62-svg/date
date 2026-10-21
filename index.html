@@ -13,7 +13,7 @@
         #result { padding: 20px; border: 1px solid #ddd; border-radius: 4px; background-color: #f9f9f9; min-height: 100px; }
         .field { margin-bottom: 10px; }
         .label { font-weight: bold; color: #555; }
-        .value { margin-top: 2px; }
+        .value { margin-top: 2px; font-size: 18px; }
         .error { color: red; }
     </style>
 </head>
@@ -31,10 +31,28 @@
     </div>
 
     <script>
-        // Вставьте сюда ссылку, полученную при развертывании Apps Script
-        const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxyVgO_O_jwds-DFZqt8OsL1L4UqNA9QdP7ZLQpxGbH_2yhBSIFukTSetqxFEzKmypOSQ/exec';
+        // ВСТАВЬТЕ СЮДА ВАШУ ССЫЛКУ ИЗ GOOGLE APPS SCRIPT
+        const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyxiNmco4rWVER0fg2I5CWphVt8Su85DH3m3eDm2lr2_CYadPCad_wFjOSWNF-A9Ju-jw/exec';
 
-        async function search() {
+        // Эта функция будет вызвана, когда Google вернет данные
+        function showResults(data) {
+            const resultDiv = document.getElementById('result');
+
+            if (data.error) {
+                resultDiv.innerHTML = `<span class="error">Ошибка: ${data.error}</span>`;
+                return;
+            }
+
+            resultDiv.innerHTML = `
+                <div class="field"><span class="label">ID:</span> <div class="value">${data['ID'] || '—'}</div></div>
+                <div class="field"><span class="label">Учреждение:</span> <div class="value">${data['Учреждение'] || '—'}</div></div>
+                <div class="field"><span class="label">Наименование МИ:</span> <div class="value">${data['Наименование МИ'] || '—'}</div></div>
+                <div class="field"><span class="label">Дата начала:</span> <div class="value">${data['Дата начала'] || '—'}</div></div>
+            `;
+        }
+
+        // Функция поиска через JSONP (обходит CORS)
+        function search() {
             const id = document.getElementById('idInput').value.trim();
             const resultDiv = document.getElementById('result');
 
@@ -45,39 +63,29 @@
 
             resultDiv.innerHTML = 'Загрузка...';
 
-            try {
-                // Отправляем GET-запрос
-                const response = await fetch(`${SCRIPT_URL}?id=${encodeURIComponent(id)}`, {
-                    method: 'GET',
-                    redirect: 'follow', // Важно для Google Scripts
-                    headers: {
-                        'Accept': 'application/json'
-                    }
-                });
+            // Создаем уникальное имя функции
+            const callbackName = 'jsonp_callback_' + Math.round(100000 * Math.random());
+            
+            // Привязываем нашу функцию showResults к этому имени
+            window[callbackName] = function(data) {
+                showResults(data);
+                // Убираем за собой скрипт и функцию
+                document.body.removeChild(script);
+                delete window[callbackName];
+            };
 
-                // Проверяем, успешен ли ответ
-                if (!response.ok) {
-                    throw new Error(`Ошибка HTTP: ${response.status}`);
-                }
+            // Создаем тег <script>, браузер загрузит его без блокировок
+            const script = document.createElement('script');
+            script.src = `${SCRIPT_URL}?id=${encodeURIComponent(id)}&callback=${callbackName}`;
+            
+            // Обработка ошибки загрузки (например, если ссылка неверная)
+            script.onerror = function() {
+                resultDiv.innerHTML = '<span class="error">Ошибка сети. Проверьте ссылку на скрипт.</span>';
+                document.body.removeChild(script);
+                delete window[callbackName];
+            };
 
-                const data = await response.json();
-
-                if (data.error) {
-                    resultDiv.innerHTML = `<span class="error">Ошибка: ${data.error}</span>`;
-                    return;
-                }
-
-                // Формируем красивый вывод
-                resultDiv.innerHTML = `
-                    <div class="field"><span class="label">ID:</span> <div class="value">${data['ID'] || '—'}</div></div>
-                    <div class="field"><span class="label">Учреждение:</span> <div class="value">${data['Учреждение'] || '—'}</div></div>
-                    <div class="field"><span class="label">Наименование МИ:</span> <div class="value">${data['Наименование МИ'] || '—'}</div></div>
-                    <div class="field"><span class="label">Дата начала:</span> <div class="value">${data['Дата начала'] || '—'}</div></div>
-                `;
-
-            } catch (error) {
-                resultDiv.innerHTML = `<span class="error">Ошибка соединения: ${error.message}</span>`;
-            }
+            document.body.appendChild(script);
         }
     </script>
 
