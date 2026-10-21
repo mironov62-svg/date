@@ -46,8 +46,20 @@
             resultDiv.innerHTML = 'Загрузка...';
 
             try {
-                // Отправляем GET-запрос к нашему скрипту
-                const response = await fetch(`${SCRIPT_URL}?id=${encodeURIComponent(id)}`);
+                // Отправляем GET-запрос
+                const response = await fetch(`${SCRIPT_URL}?id=${encodeURIComponent(id)}`, {
+                    method: 'GET',
+                    redirect: 'follow', // Важно для Google Scripts
+                    headers: {
+                        'Accept': 'application/json'
+                    }
+                });
+
+                // Проверяем, успешен ли ответ
+                if (!response.ok) {
+                    throw new Error(`Ошибка HTTP: ${response.status}`);
+                }
+
                 const data = await response.json();
 
                 if (data.error) {
