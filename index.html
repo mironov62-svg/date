@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Поиск по ID</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 600px; margin: 40px auto; padding: 20px; }
+        .input-group { display: flex; gap: 10px; margin-bottom: 20px; }
+        input { flex: 1; padding: 10px; font-size: 16px; border: 1px solid #ccc; border-radius: 4px; }
+        button { padding: 10px 20px; font-size: 16px; background-color: #4285f4; color: white; border: none; border-radius: 4px; cursor: pointer; }
+        button:hover { background-color: #3367d6; }
+        #result { padding: 20px; border: 1px solid #ddd; border-radius: 4px; background-color: #f9f9f9; min-height: 100px; }
+        .field { margin-bottom: 10px; }
+        .label { font-weight: bold; color: #555; }
+        .value { margin-top: 2px; }
+        .error { color: red; }
+    </style>
+</head>
+<body>
+
+    <h2>Поиск записи</h2>
+    
+    <div class="input-group">
+        <input type="text" id="idInput" placeholder="Введите ID..." />
+        <button onclick="search()">Найти</button>
+    </div>
+
+    <div id="result">
+        Введите ID и нажмите «Найти».
+    </div>
+
+    <script>
+        // Вставьте сюда ссылку, полученную при развертывании Apps Script
+        const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxyVgO_O_jwds-DFZqt8OsL1L4UqNA9QdP7ZLQpxGbH_2yhBSIFukTSetqxFEzKmypOSQ/exec';
+
+        async function search() {
+            const id = document.getElementById('idInput').value.trim();
+            const resultDiv = document.getElementById('result');
+
+            if (!id) {
+                resultDiv.innerHTML = '<span class="error">Пожалуйста, введите ID.</span>';
+                return;
+            }
+
+            resultDiv.innerHTML = 'Загрузка...';
+
+            try {
+                // Отправляем GET-запрос к нашему скрипту
+                const response = await fetch(`${SCRIPT_URL}?id=${encodeURIComponent(id)}`);
+                const data = await response.json();
+
+                if (data.error) {
+                    resultDiv.innerHTML = `<span class="error">Ошибка: ${data.error}</span>`;
+                    return;
+                }
+
+                // Формируем красивый вывод
+                resultDiv.innerHTML = `
+                    <div class="field"><span class="label">ID:</span> <div class="value">${data['ID'] || '—'}</div></div>
+                    <div class="field"><span class="label">Учреждение:</span> <div class="value">${data['Учреждение'] || '—'}</div></div>
+                    <div class="field"><span class="label">Наименование МИ:</span> <div class="value">${data['Наименование МИ'] || '—'}</div></div>
+                    <div class="field"><span class="label">Дата начала:</span> <div class="value">${data['Дата начала'] || '—'}</div></div>
+                `;
+
+            } catch (error) {
+                resultDiv.innerHTML = `<span class="error">Ошибка соединения: ${error.message}</span>`;
+            }
+        }
+    </script>
+
+</body>
+</html>
